@@ -4,6 +4,43 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Linux · Cloud Cheat Sheet v2</title>
+<!-- Early safe DOM wrappers: return a lightweight dummy element instead of null for common selectors
+     This prevents external/injected scripts from throwing when they immediately call `.getAttribute()`
+     on a missing element. It's defensive and aims to avoid uncaught TypeErrors from injections.
+-->
+<script>
+(() => {
+  class DummyElement {
+    constructor(sel){ this._sel = sel; this.dataset = {}; this.style = {}; this.classList = { add(){}, remove(){}, contains(){return false} }; }
+    getAttribute(){ return null; }
+    setAttribute(){ return; }
+    removeAttribute(){ return; }
+    addEventListener(){ return; }
+    removeEventListener(){ return; }
+    querySelector(){ return null; }
+    querySelectorAll(){ return []; }
+    appendChild(){ return; }
+    remove(){ return; }
+    getBoundingClientRect(){ return {top:0,left:0,right:0,bottom:0,width:0,height:0}; }
+    focus(){ return; }
+    blur(){ return; }
+    scrollIntoView(){ return; }
+    toString(){ return '[DummyElement:'+this._sel+']'; }
+  }
+
+  try {
+    const docProto = Document.prototype;
+    const origQuery = docProto.querySelector;
+    const origGet = docProto.getElementById;
+    docProto.querySelector = function(sel){
+      try{ const r = origQuery.call(this, sel); return r===null? new DummyElement(sel) : r; } catch(e){ return new DummyElement(sel); }
+    };
+    docProto.getElementById = function(id){
+      try{ const r = origGet.call(this, id); return r===null? new DummyElement('#'+id) : r; } catch(e){ return new DummyElement('#'+id); }
+    };
+  } catch (err) { /* if environment forbids overriding, fail silently */ }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -737,6 +774,37 @@ document.addEventListener('keydown',e=>{
 // ── Init
 buildSidebar();
 renderSections();
+</script>
+<!-- Defensive global handlers: suppress or log errors from injected external scripts (e.g. ma_payload.js) -->
+<script>
+// Suppress unhandled promise rejections originating from external/injected scripts
+window.addEventListener('unhandledrejection', function (e) {
+  try {
+    const reason = e.reason || '';
+    const msg = (reason && (reason.message || reason.toString())) || '';
+    const stack = (reason && reason.stack) || '';
+    // If this looks like the ma_payload/getAttribute error, prevent noisy uncaught log
+    if (msg.includes('getAttribute') || stack.includes('ma_payload.js') || msg.includes('ma_payload')) {
+      console.warn('Suppressed external script promise rejection:', msg);
+      e.preventDefault();
+      return;
+    }
+  } catch (err) {
+    // ignore
+  }
+});
+
+// Suppress window errors coming from known injected filenames
+window.addEventListener('error', function (e) {
+  try {
+    if (e && e.filename && e.filename.includes('ma_payload.js')) {
+      console.warn('Suppressed external script error from', e.filename, e.message);
+      e.preventDefault();
+    }
+  } catch (err) {
+    // ignore
+  }
+});
 </script>
 </body>
 </html>
