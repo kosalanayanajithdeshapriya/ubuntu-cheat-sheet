@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Linux · Cloud Cheat Sheet v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e26;--bg4:#21262f;
+  --border:#2a2f3a;--border2:#353c4a;
+  --text:#e2e8f0;--muted:#8892a4;--dim:#5c6678;
+  --green:#4ade80;--green-bg:#0d2416;--green-dim:#166534;
+  --amber:#fbbf24;--amber-bg:#271a04;
+  --blue:#60a5fa;--blue-bg:#0c1e3a;
+  --cyan:#22d3ee;--pink:#f472b6;--purple:#a78bfa;
+  --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
+  --r:8px;--r-sm:5px;
+}
+.light-mode{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#e8edf3;--bg4:#dde3ec;
+  --border:#c8d0dc;--border2:#b0bac9;
+  --text:#1a202c;--muted:#4a5568;--dim:#718096;
+  --green:#16a34a;--green-bg:#dcfce7;--green-dim:#86efac;
+  --amber:#d97706;--amber-bg:#fef3c7;
+  --blue:#2563eb;--blue-bg:#dbeafe;
+  --cyan:#0891b2;--pink:#db2777;--purple:#7c3aed;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;line-height:1.5;transition:background .3s,color .3s}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:999}
+.light-mode body::before{display:none}
+
+/* PROGRESS BAR */
+#progress-bar{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--green),var(--cyan));z-index:1000;transition:width .1s;box-shadow:0 0 8px var(--green)}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:230px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,border-color .3s}
+.sidebar-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.logo-title{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;letter-spacing:-.02em}
+.logo-icon{width:26px;height:26px;background:linear-gradient(135deg,var(--green),var(--cyan));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.logo-sub{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono);letter-spacing:.05em}
+.sidebar-badges{display:flex;gap:5px;padding:10px 18px;border-bottom:1px solid var(--border)}
+.badge{font-family:var(--sans);font-size:9px;font-weight:600;padding:2px 7px;border-radius:99px;letter-spacing:.08em;text-transform:uppercase}
+.badge-aws{background:var(--amber-bg);color:var(--amber);border:1px solid #5a3a00}
+.badge-gcs{background:var(--blue-bg);color:var(--blue);border:1px solid #1a3a6a}
+.badge-linux{background:var(--green-bg);color:var(--green);border:1px solid var(--green-dim)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:10px 0}
+.sidebar-nav::-webkit-scrollbar{width:4px}
+.sidebar-nav::-webkit-scrollbar-track{background:transparent}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 18px;cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s;border-left:2px solid transparent;position:relative}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--green);background:var(--green-bg);border-left-color:var(--green)}
+.nav-item .nav-icon{font-size:13px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-item .nav-count{margin-left:auto;font-size:9px;color:var(--dim);background:var(--bg4);padding:1px 5px;border-radius:99px}
+.nav-item.active .nav-count{background:var(--green-dim);color:var(--green)}
+.nav-starred{color:var(--amber)!important;border-left-color:var(--amber)!important;background:var(--amber-bg)!important}
+.sidebar-stats{padding:12px 18px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px;text-align:center}
+.stat-num{font-size:16px;font-weight:600;color:var(--cyan);font-family:var(--sans)}
+.stat-label{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;flex-wrap:wrap;transition:background .3s}
+.search-wrap{flex:1;position:relative;max-width:420px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px;pointer-events:none}
+#search{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 12px 7px 33px;outline:none;transition:border-color .15s,background .3s}
+#search::placeholder{color:var(--dim)}
+#search:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(74,222,128,.07)}
+.filter-pills{display:flex;gap:5px;flex-wrap:wrap}
+.pill{font-family:var(--sans);font-size:10px;font-weight:600;padding:4px 10px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all .15s;letter-spacing:.04em;text-transform:uppercase}
+.pill:hover{color:var(--text)}
+.pill.active-aws{background:var(--amber-bg);color:var(--amber);border-color:#5a3a00}
+.pill.active-gcs{background:var(--blue-bg);color:var(--blue);border-color:#1a3a6a}
+.pill.active-all{background:var(--green-bg);color:var(--green);border-color:var(--green-dim)}
+.pill.active-starred{background:var(--amber-bg);color:var(--amber);border-color:#5a3a00}
+.topbar-actions{display:flex;gap:6px;align-items:center;margin-left:auto}
+.icon-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--muted);cursor:pointer;font-size:13px;padding:5px 8px;transition:all .15s;font-family:var(--mono)}
+.icon-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg4)}
+.icon-btn.active{color:var(--amber);border-color:var(--amber)}
+.result-count{font-size:10px;color:var(--dim);white-space:nowrap;font-family:var(--mono)}
+.result-count span{color:var(--green)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:16px 20px 80px;scroll-behavior:smooth}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.section{margin-bottom:20px}
+.section-header{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;cursor:pointer;user-select:none;transition:border-color .15s,background .15s}
+.section-header:hover{border-color:var(--border2);background:var(--bg4)}
+.section-icon{font-size:14px;color:var(--green);flex-shrink:0}
+.section-title{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text);letter-spacing:.01em;flex:1}
+.section-count{font-size:9px;color:var(--dim);background:var(--bg4);border:1px solid var(--border);padding:2px 7px;border-radius:99px}
+.chevron{color:var(--dim);font-size:12px;transition:transform .2s;flex-shrink:0}
+.section-header.collapsed .chevron{transform:rotate(-90deg)}
+
+/* GRID + CARD */
+.cmd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:7px}
+.cmd-grid.hidden{display:none}
+.cmd-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:default;transition:border-color .15s,background .15s,transform .1s;position:relative;overflow:hidden}
+.cmd-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:transparent;transition:background .15s}
+.cmd-card:hover{border-color:var(--border2);background:var(--bg3);transform:translateY(-1px)}
+.cmd-card:hover::before{background:var(--green)}
+.cmd-card.starred{border-color:rgba(251,191,36,.35)}
+.cmd-card.starred::before{background:var(--amber)}
+.cmd-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.cmd-code{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--cyan);word-break:break-all;flex:1;line-height:1.45}
+.cmd-tags{display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.tag-badge{font-family:var(--sans);font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.07em;text-transform:uppercase}
+.tag-aws{background:var(--amber-bg);color:var(--amber)}
+.tag-gcs{background:var(--blue-bg);color:var(--blue)}
+.cmd-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.cmd-desc{font-size:10.5px;color:var(--muted);line-height:1.4;font-family:var(--mono);flex:1}
+.cmd-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.copy-btn{font-family:var(--sans);font-size:9px;font-weight:600;padding:3px 8px;background:transparent;border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--dim);cursor:pointer;white-space:nowrap;transition:all .15s;letter-spacing:.05em;text-transform:uppercase}
+.copy-btn:hover{color:var(--text);border-color:var(--green);background:var(--green-bg)}
+.copy-btn.copied{color:var(--green);border-color:var(--green);background:var(--green-bg)}
+.star-btn{background:transparent;border:none;cursor:pointer;font-size:14px;color:var(--dim);transition:all .15s;padding:2px 4px;line-height:1}
+.star-btn:hover{color:var(--amber);transform:scale(1.2)}
+.star-btn.starred{color:var(--amber)}
+.copy-count{font-size:9px;color:var(--dim);font-family:var(--mono);white-space:nowrap}
+
+/* SEARCH HIGHLIGHT */
+.hl{background:rgba(251,191,36,.25);color:var(--amber);border-radius:2px;padding:0 1px}
+
+/* NO RESULTS */
+.no-results{text-align:center;padding:60px 20px;color:var(--dim);font-family:var(--sans)}
+.no-results .nr-icon{font-size:32px;margin-bottom:10px}
+.no-results p{font-size:13px}
+
+/* JUMP TO TOP */
+#jump-top{position:fixed;bottom:30px;right:24px;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--cyan));border:none;cursor:pointer;font-size:18px;color:#0d0f12;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(74,222,128,.3);transition:opacity .25s,transform .25s;opacity:0;pointer-events:none;z-index:100}
+#jump-top.visible{opacity:1;pointer-events:all}
+#jump-top:hover{transform:scale(1.1) translateY(-2px)}
+
+/* KEYBOARD MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:24px;width:480px;max-width:90vw;max-height:80vh;overflow-y:auto;transform:translateY(10px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal h2{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.shortcut-grid{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;align-items:center}
+.kbd{font-family:var(--mono);font-size:10px;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;padding:3px 7px;color:var(--cyan);white-space:nowrap;text-align:center}
+.shortcut-desc{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.modal-close{float:right;background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:18px;line-height:1}
+.modal-close:hover{color:var(--text)}
+.shortcut-section-title{grid-column:1/-1;font-family:var(--sans);font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* SECTION scroll margin */
+.section[data-id]{scroll-margin-top:10px}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  .sidebar{display:none}
+  .filter-pills{display:none}
+  .cmd-grid{grid-template-columns:1fr}
+  .topbar-actions .icon-btn span{display:none}
+}
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+
+<!-- KEYBOARD SHORTCUT MODAL -->
+<div class="modal-overlay" id="shortcuts-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <h2>⌨️ Keyboard Shortcuts <button class="modal-close" onclick="toggleModal()">✕</button></h2>
+    <div class="shortcut-grid">
+      <div class="shortcut-section-title">Navigation</div>
+      <span class="kbd">/</span><span class="shortcut-desc">Focus search bar</span>
+      <span class="kbd">Esc</span><span class="shortcut-desc">Clear search / close modal</span>
+      <span class="kbd">Alt + 1…9</span><span class="shortcut-desc">Jump to section 1–9</span>
+      <div class="shortcut-section-title">Actions</div>
+      <span class="kbd">?</span><span class="shortcut-desc">Toggle this shortcuts modal</span>
+      <span class="kbd">Ctrl + D</span><span class="shortcut-desc">Toggle dark / light mode</span>
+      <span class="kbd">Ctrl + E</span><span class="shortcut-desc">Export visible commands to TXT</span>
+      <span class="kbd">Ctrl + ↑/↓</span><span class="shortcut-desc">Expand / collapse all sections</span>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-title">
+        <div class="logo-icon">⌨</div>Linux · Cloud
+      </div>
+      <div class="logo-sub">// cheat sheet v2.0</div>
+    </div>
+    <div class="sidebar-badges">
+      <span class="badge badge-linux">Linux</span>
+      <span class="badge badge-aws">AWS</span>
+      <span class="badge badge-gcs">GCS</span>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-stats">
+      <div class="stat-box"><div class="stat-num" id="stat-sections">0</div><div class="stat-label">Sections</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-cmds">0</div><div class="stat-label">Commands</div></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="search" placeholder="Search commands… (press /)" oninput="filterCmds(this.value)" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="filter-pills">
+        <button class="pill active-all" onclick="setFilter('all',this)">All</button>
+        <button class="pill" onclick="setFilter('aws',this)">AWS</button>
+        <button class="pill" onclick="setFilter('gcs',this)">GCS</button>
+        <button class="pill" id="pill-starred" onclick="setFilter('starred',this)">⭐ Starred</button>
+      </div>
+      <div class="topbar-actions">
+        <div class="result-count" id="result-count"></div>
+        <button class="icon-btn" onclick="expandAll()" title="Expand all">⬇ <span>Expand</span></button>
+        <button class="icon-btn" onclick="collapseAll()" title="Collapse all">⬆ <span>Collapse</span></button>
+        <button class="icon-btn" onclick="exportTxt()" title="Export TXT (Ctrl+E)">📤 <span>Export</span></button>
+        <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme (Ctrl+D)">🌓</button>
+        <button class="icon-btn" onclick="toggleModal()" title="Keyboard shortcuts (?)">⌨</button>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div id="sections"></div>
+      <div id="no-results" class="no-results" style="display:none">
+        <div class="nr-icon">◌</div>
+        <p>No commands match your search.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button id="jump-top" onclick="window.scrollTo({top:0})" title="Back to top">↑</button>
+<script>
+const ICONS={"ti-folder":"📁","ti-file":"📄","ti-filter":"🔍","ti-cpu":"⚙","ti-network":"🌐","ti-lock":"🔐","ti-package":"📦","ti-settings":"⚙","ti-cloud":"☁","ti-brand-google":"☁","ti-brand-docker":"🐳","ti-topology-ring":"⛵","ti-code":"{}","ti-clock":"⏰","ti-archive":"🗜","ti-user":"👤","ti-git":"🌿","ti-python":"🐍","ti-terminal":"$_","ti-terraform":"🏗","ti-vim":"📝"};
+const data=[
+{title:"File & directory navigation",icon:"ti-folder",cmds:[
+{cmd:"ls -lah",desc:"List files with size, permissions, hidden files",tags:[]},
+{cmd:"ls -lh --sort=size",desc:"Sort files by size (largest first)",tags:[]},
+{cmd:"cd /var/log",desc:"Navigate to a directory",tags:[]},
+{cmd:"pwd",desc:"Print current working directory",tags:[]},
+{cmd:"find / -name '*.conf' 2>/dev/null",desc:"Find files by name, suppress errors",tags:[]},
+{cmd:"find /etc -type f -mtime -1",desc:"Files modified in the last 24 hours",tags:[]},
+{cmd:"tree -L 2",desc:"Show directory tree 2 levels deep",tags:[]},
+{cmd:"du -sh *",desc:"Disk usage of each item in current dir",tags:[]},
+{cmd:"df -h",desc:"Disk space usage per mounted filesystem",tags:[]},
+{cmd:"stat filename",desc:"Detailed file metadata (timestamps, inode)",tags:[]}
+]},
+{title:"File operations",icon:"ti-file",cmds:[
+{cmd:"cp -r src/ dest/",desc:"Recursively copy directory",tags:[]},
+{cmd:"mv file.txt /tmp/",desc:"Move or rename a file",tags:[]},
+{cmd:"rm -rf /tmp/test/",desc:"Force delete directory recursively",tags:[]},
+{cmd:"mkdir -p a/b/c",desc:"Create nested directories",tags:[]},
+{cmd:"ln -s /data /mnt/data",desc:"Create a symbolic link",tags:[]},
+{cmd:"rsync -avz src/ user@host:dst/",desc:"Sync files to remote (archive, verbose, compressed)",tags:[]},
+{cmd:"rsync -avz --progress src/ dst/",desc:"Sync with progress bar",tags:[]},
+{cmd:"scp file.txt user@host:/path/",desc:"Secure copy file to remote host",tags:[]},
+{cmd:"chmod 600 key.pem",desc:"Set permissions (owner read/write only) — needed for SSH keys",tags:["aws"]},
+{cmd:"chown -R user:group /dir",desc:"Change file ownership recursively",tags:[]},
+{cmd:"cat file.txt",desc:"Print file contents",tags:[]},
+{cmd:"head -n 50 file.log",desc:"First 50 lines of a file",tags:[]},
+{cmd:"tail -n 100 -f /var/log/syslog",desc:"Follow live log updates",tags:[]}
+]},
+{title:"Text processing",icon:"ti-filter",cmds:[
+{cmd:"grep -rn 'error' /var/log/",desc:"Recursive search with line numbers",tags:[]},
+{cmd:"grep -i 'ERROR' app.log | tail -50",desc:"Case-insensitive grep, last 50 matches",tags:[]},
+{cmd:"grep -v '^#' /etc/config",desc:"Exclude comment lines",tags:[]},
+{cmd:"awk '{print $1, $4}' access.log",desc:"Print specific columns",tags:[]},
+{cmd:"awk -F: '{print $1}' /etc/passwd",desc:"Use : as delimiter, print first field",tags:[]},
+{cmd:"sed 's/old/new/g' file.txt",desc:"Replace all occurrences in a file",tags:[]},
+{cmd:"sed -i 's/old/new/g' file.txt",desc:"In-place replace (edit the file)",tags:[]},
+{cmd:"sort -k2 -n file.txt",desc:"Sort by 2nd column numerically",tags:[]},
+{cmd:"sort | uniq -c | sort -rn",desc:"Count unique lines, sorted by frequency",tags:[]},
+{cmd:"cut -d',' -f1,3 data.csv",desc:"Extract columns 1 and 3 from CSV",tags:[]},
+{cmd:"wc -l file.txt",desc:"Count lines in a file",tags:[]},
+{cmd:"jq '.items[].name' data.json",desc:"Parse and query JSON",tags:["aws","gcs"]},
+{cmd:"jq -r '.AccessKeyId' creds.json",desc:"Extract raw string from JSON (no quotes)",tags:["aws"]}
+]},
+{title:"Process & system monitoring",icon:"ti-cpu",cmds:[
+{cmd:"top",desc:"Live CPU/memory usage by process",tags:[]},
+{cmd:"htop",desc:"Interactive process viewer (prettier top)",tags:[]},
+{cmd:"ps aux | grep python",desc:"Find running Python processes",tags:[]},
+{cmd:"ps aux --sort=-%mem | head -10",desc:"Top 10 memory-consuming processes",tags:[]},
+{cmd:"kill -9 <PID>",desc:"Force kill a process by PID",tags:[]},
+{cmd:"pkill -f 'gunicorn'",desc:"Kill all processes matching a pattern",tags:[]},
+{cmd:"nohup ./script.sh &",desc:"Run process in background, immune to logout",tags:[]},
+{cmd:"screen -S session_name",desc:"Create a named terminal session",tags:[]},
+{cmd:"tmux new -s main",desc:"New tmux session named 'main'",tags:[]},
+{cmd:"uptime",desc:"System uptime and load average",tags:[]},
+{cmd:"free -h",desc:"Show RAM and swap usage",tags:[]},
+{cmd:"vmstat 1 5",desc:"CPU/memory stats every 1s, 5 times",tags:[]},
+{cmd:"iostat -xz 1",desc:"Disk I/O stats per device",tags:[]},
+{cmd:"lsof -i :8080",desc:"Show process using port 8080",tags:[]},
+{cmd:"strace -p <PID>",desc:"Trace system calls of a process",tags:[]}
+]},
+{title:"Networking",icon:"ti-network",cmds:[
+{cmd:"curl -I https://example.com",desc:"Fetch HTTP headers only",tags:[]},
+{cmd:"curl -o file.zip https://url/file.zip",desc:"Download file from URL",tags:[]},
+{cmd:"wget -q -O - https://url | bash",desc:"Download and pipe to bash (install scripts)",tags:[]},
+{cmd:"ping -c 4 8.8.8.8",desc:"Test connectivity with 4 packets",tags:[]},
+{cmd:"traceroute google.com",desc:"Trace network path to host",tags:[]},
+{cmd:"netstat -tulnp",desc:"Show listening ports and owning process",tags:[]},
+{cmd:"ss -tulnp",desc:"Faster alternative to netstat",tags:[]},
+{cmd:"nmap -sV -p 22,80,443 host",desc:"Scan specific ports and detect service versions",tags:[]},
+{cmd:"ip addr show",desc:"Show IP addresses on all interfaces",tags:[]},
+{cmd:"ip route show",desc:"Show routing table",tags:[]},
+{cmd:"dig +short example.com",desc:"DNS lookup (short output)",tags:[]},
+{cmd:"nslookup example.com",desc:"Query DNS name servers",tags:[]},
+{cmd:"nc -zv hostname 5432",desc:"Test TCP connection to a port (e.g. Postgres)",tags:[]},
+{cmd:"iptables -L -n -v",desc:"List firewall rules",tags:[]},
+{cmd:"ufw status verbose",desc:"Show UFW firewall status",tags:[]}
+]},
+{title:"SSH & remote access",icon:"ti-lock",cmds:[
+{cmd:"ssh -i key.pem user@host",desc:"Connect using a PEM key",tags:["aws"]},
+{cmd:"ssh-keygen -t ed25519 -C 'label'",desc:"Generate an Ed25519 SSH key pair",tags:[]},
+{cmd:"ssh-copy-id user@host",desc:"Copy public key to remote authorized_keys",tags:[]},
+{cmd:"ssh -L 5432:localhost:5432 user@host",desc:"Local port forward (tunnel DB)",tags:["aws","gcs"]},
+{cmd:"ssh -N -f -L 8888:localhost:8888 u@h",desc:"Background SSH tunnel for Jupyter",tags:[]},
+{cmd:"ssh -o StrictHostKeyChecking=no u@h",desc:"Skip host key verification (CI/CD use)",tags:["aws","gcs"]}
+]},
+{title:"Package management",icon:"ti-package",cmds:[
+{cmd:"apt update && apt upgrade -y",desc:"Update package list and upgrade all packages",tags:[]},
+{cmd:"apt install -y nginx git curl",desc:"Install packages non-interactively",tags:[]},
+{cmd:"apt remove --purge nginx",desc:"Uninstall package and its config files",tags:[]},
+{cmd:"dpkg -l | grep nginx",desc:"Check if a package is installed (Debian/Ubuntu)",tags:[]},
+{cmd:"yum install -y httpd",desc:"Install package on RHEL/CentOS/Amazon Linux",tags:["aws"]},
+{cmd:"yum update -y",desc:"Update all packages (RHEL/CentOS/Amazon Linux)",tags:["aws"]},
+{cmd:"dnf install -y python3",desc:"Install with DNF (Fedora/newer Amazon Linux)",tags:[]},
+{cmd:"snap install --classic code",desc:"Install a snap package",tags:[]}
+]},
+{title:"Systemd & services",icon:"ti-settings",cmds:[
+{cmd:"systemctl status nginx",desc:"Check service status",tags:[]},
+{cmd:"systemctl start|stop|restart nginx",desc:"Start, stop, or restart a service",tags:[]},
+{cmd:"systemctl enable nginx",desc:"Enable service to start on boot",tags:[]},
+{cmd:"systemctl disable nginx",desc:"Disable service from starting on boot",tags:[]},
+{cmd:"journalctl -u nginx -f",desc:"Follow live logs for a service",tags:[]},
+{cmd:"journalctl -u nginx --since '1h ago'",desc:"Service logs from the last hour",tags:[]},
+{cmd:"journalctl -p err -b",desc:"Show errors since last boot",tags:[]},
+{cmd:"systemctl list-units --failed",desc:"List all failed units",tags:[]}
+]},
+{title:"AWS CLI",icon:"ti-cloud",cmds:[
+{cmd:"aws configure",desc:"Set up AWS credentials and region",tags:["aws"]},
+{cmd:"aws sts get-caller-identity",desc:"Verify current AWS identity",tags:["aws"]},
+{cmd:"aws s3 ls s3://bucket-name",desc:"List contents of an S3 bucket",tags:["aws"]},
+{cmd:"aws s3 cp file.txt s3://bucket/",desc:"Upload file to S3",tags:["aws"]},
+{cmd:"aws s3 sync ./local/ s3://bucket/path/",desc:"Sync local directory to S3",tags:["aws"]},
+{cmd:"aws s3 rm s3://bucket/file.txt",desc:"Delete an S3 object",tags:["aws"]},
+{cmd:"aws ec2 describe-instances --output table",desc:"List EC2 instances in table format",tags:["aws"]},
+{cmd:"aws ec2 start-instances --instance-ids i-xxx",desc:"Start an EC2 instance",tags:["aws"]},
+{cmd:"aws ec2 stop-instances --instance-ids i-xxx",desc:"Stop an EC2 instance",tags:["aws"]},
+{cmd:"aws ec2 describe-security-groups",desc:"List security groups",tags:["aws"]},
+{cmd:"aws logs tail /aws/lambda/fn --follow",desc:"Follow live CloudWatch logs",tags:["aws"]},
+{cmd:"aws ecr get-login-password | docker login --username AWS --password-stdin <acct>.dkr.ecr.<region>.amazonaws.com",desc:"Log in to ECR registry",tags:["aws"]},
+{cmd:"aws eks update-kubeconfig --name cluster",desc:"Add EKS cluster to kubeconfig",tags:["aws"]},
+{cmd:"aws rds describe-db-instances",desc:"List RDS database instances",tags:["aws"]},
+{cmd:"aws secretsmanager get-secret-value --secret-id mySecret",desc:"Retrieve a secret from Secrets Manager",tags:["aws"]},
+{cmd:"aws lambda invoke --function-name fn out.json",desc:"Invoke a Lambda function",tags:["aws"]},
+{cmd:"aws cloudformation describe-stacks",desc:"List CloudFormation stacks",tags:["aws"]},
+{cmd:"aws iam list-users",desc:"List all IAM users",tags:["aws"]},
+{cmd:"aws --profile staging s3 ls",desc:"Use a named AWS profile",tags:["aws"]}
+]},
+{title:"GCS (gcloud / gsutil)",icon:"ti-brand-google",cmds:[
+{cmd:"gcloud auth login",desc:"Authenticate to GCP via browser",tags:["gcs"]},
+{cmd:"gcloud config set project PROJECT_ID",desc:"Set the active GCP project",tags:["gcs"]},
+{cmd:"gcloud config list",desc:"Show current gcloud configuration",tags:["gcs"]},
+{cmd:"gcloud auth application-default login",desc:"Set application default credentials (ADC)",tags:["gcs"]},
+{cmd:"gsutil ls gs://bucket-name",desc:"List objects in a GCS bucket",tags:["gcs"]},
+{cmd:"gsutil cp file.txt gs://bucket/",desc:"Upload file to GCS bucket",tags:["gcs"]},
+{cmd:"gsutil rsync -r ./local gs://bucket/path/",desc:"Sync local directory to GCS",tags:["gcs"]},
+{cmd:"gsutil rm gs://bucket/file.txt",desc:"Delete a GCS object",tags:["gcs"]},
+{cmd:"gsutil du -sh gs://bucket/",desc:"Show total size of a bucket",tags:["gcs"]},
+{cmd:"gcloud compute instances list",desc:"List all GCE VM instances",tags:["gcs"]},
+{cmd:"gcloud compute ssh instance-name --zone us-central1-a",desc:"SSH into a GCE instance",tags:["gcs"]},
+{cmd:"gcloud compute instances start/stop INSTANCE",desc:"Start or stop a GCE instance",tags:["gcs"]},
+{cmd:"gcloud container clusters get-credentials CLUSTER",desc:"Fetch kubeconfig for GKE cluster",tags:["gcs"]},
+{cmd:"gcloud run deploy --image gcr.io/proj/img",desc:"Deploy container to Cloud Run",tags:["gcs"]},
+{cmd:"gcloud functions deploy fnName --runtime python311",desc:"Deploy a Cloud Function",tags:["gcs"]},
+{cmd:"gcloud logging read 'severity=ERROR' --limit=50",desc:"Read last 50 error logs from Cloud Logging",tags:["gcs"]},
+{cmd:"gcloud sql instances list",desc:"List Cloud SQL instances",tags:["gcs"]},
+{cmd:"gcloud secrets versions access latest --secret=MY_SECRET",desc:"Access a secret from Secret Manager",tags:["gcs"]},
+{cmd:"gcloud iam service-accounts list",desc:"List IAM service accounts",tags:["gcs"]},
+{cmd:"gcloud projects list",desc:"List all accessible GCP projects",tags:["gcs"]}
+]},
+{title:"Docker",icon:"ti-brand-docker",cmds:[
+{cmd:"docker ps -a",desc:"List all containers (including stopped)",tags:[]},
+{cmd:"docker images",desc:"List downloaded images",tags:[]},
+{cmd:"docker run -d -p 80:8080 --name app img",desc:"Run container in background, map ports",tags:[]},
+{cmd:"docker exec -it container_id bash",desc:"Open a shell inside running container",tags:[]},
+{cmd:"docker logs -f container_id",desc:"Follow live container logs",tags:[]},
+{cmd:"docker stop $(docker ps -q)",desc:"Stop all running containers",tags:[]},
+{cmd:"docker rm $(docker ps -aq)",desc:"Remove all containers",tags:[]},
+{cmd:"docker system prune -af",desc:"Remove all unused images, containers, volumes",tags:[]},
+{cmd:"docker build -t myapp:1.0 .",desc:"Build image from current directory",tags:[]},
+{cmd:"docker push myapp:1.0",desc:"Push image to registry",tags:[]},
+{cmd:"docker-compose up -d",desc:"Start all services in background",tags:[]},
+{cmd:"docker-compose down -v",desc:"Stop services and remove volumes",tags:[]},
+{cmd:"docker inspect container_id | jq '.[0].NetworkSettings'",desc:"Inspect container network details",tags:[]}
+]},
+{title:"Kubernetes (kubectl)",icon:"ti-topology-ring",cmds:[
+{cmd:"kubectl get pods -A",desc:"List all pods in all namespaces",tags:[]},
+{cmd:"kubectl get pods -n namespace -w",desc:"Watch pod status in a namespace",tags:[]},
+{cmd:"kubectl describe pod pod-name",desc:"Detailed info about a pod",tags:[]},
+{cmd:"kubectl logs -f pod-name -n ns",desc:"Follow live pod logs",tags:[]},
+{cmd:"kubectl logs pod-name --previous",desc:"Logs from previous crashed container",tags:[]},
+{cmd:"kubectl exec -it pod-name -- bash",desc:"Shell into a running pod",tags:[]},
+{cmd:"kubectl apply -f manifest.yaml",desc:"Apply a Kubernetes manifest",tags:[]},
+{cmd:"kubectl delete -f manifest.yaml",desc:"Delete resources defined in manifest",tags:[]},
+{cmd:"kubectl rollout restart deploy/app",desc:"Rolling restart a deployment",tags:[]},
+{cmd:"kubectl rollout status deploy/app",desc:"Watch rollout progress",tags:[]},
+{cmd:"kubectl scale deploy/app --replicas=3",desc:"Scale deployment to 3 replicas",tags:[]},
+{cmd:"kubectl top nodes",desc:"CPU/memory usage of all nodes",tags:[]},
+{cmd:"kubectl top pods -n ns",desc:"CPU/memory usage of pods in namespace",tags:[]},
+{cmd:"kubectl port-forward svc/app 8080:80",desc:"Forward local port to service port",tags:[]},
+{cmd:"kubectl config use-context CONTEXT",desc:"Switch Kubernetes cluster context",tags:[]},
+{cmd:"kubectl config get-contexts",desc:"List all available kube contexts",tags:[]}
+]},
+{title:"Environment & variables",icon:"ti-code",cmds:[
+{cmd:"export KEY=value",desc:"Set environment variable in current session",tags:[]},
+{cmd:"echo $HOME $PATH",desc:"Print environment variable values",tags:[]},
+{cmd:"env | grep AWS",desc:"List all env vars matching pattern",tags:["aws"]},
+{cmd:"printenv",desc:"Print all environment variables",tags:[]},
+{cmd:"source ~/.bashrc",desc:"Reload bash config without logging out",tags:[]},
+{cmd:"source .env",desc:"Load .env file into current shell",tags:[]},
+{cmd:"set -o allexport; source .env; set +o allexport",desc:"Export all vars from .env file",tags:[]},
+{cmd:"unset AWS_ACCESS_KEY_ID",desc:"Remove an environment variable",tags:["aws"]}
+]},
+{title:"Cron & scheduling",icon:"ti-clock",cmds:[
+{cmd:"crontab -e",desc:"Edit the current user's cron jobs",tags:[]},
+{cmd:"crontab -l",desc:"List current user's cron jobs",tags:[]},
+{cmd:"0 2 * * * /scripts/backup.sh",desc:"Run backup every day at 2:00 AM",tags:[]},
+{cmd:"*/5 * * * * /scripts/health.sh",desc:"Run every 5 minutes",tags:[]},
+{cmd:"cat /var/log/syslog | grep CRON",desc:"Check cron execution logs",tags:[]}
+]},
+{title:"Compression & archiving",icon:"ti-archive",cmds:[
+{cmd:"tar -czf archive.tar.gz /path/",desc:"Create a gzip compressed tarball",tags:[]},
+{cmd:"tar -xzf archive.tar.gz",desc:"Extract a .tar.gz archive",tags:[]},
+{cmd:"tar -tzf archive.tar.gz",desc:"List contents of .tar.gz without extracting",tags:[]},
+{cmd:"zip -r archive.zip folder/",desc:"Create a zip archive",tags:[]},
+{cmd:"unzip archive.zip -d /dest/",desc:"Extract zip to destination directory",tags:[]},
+{cmd:"gzip -d file.gz",desc:"Decompress a .gz file",tags:[]}
+]},
+{title:"User & permissions",icon:"ti-user",cmds:[
+{cmd:"whoami",desc:"Print current user name",tags:[]},
+{cmd:"id",desc:"Show user ID, group ID and groups",tags:[]},
+{cmd:"sudo su -",desc:"Switch to root user",tags:[]},
+{cmd:"useradd -m -s /bin/bash username",desc:"Create a new user with home dir",tags:[]},
+{cmd:"passwd username",desc:"Set or change user password",tags:[]},
+{cmd:"usermod -aG sudo username",desc:"Add user to sudo group",tags:[]},
+{cmd:"visudo",desc:"Safely edit sudoers file",tags:[]},
+{cmd:"getent passwd | cut -d: -f1",desc:"List all users on the system",tags:[]}
+]},
+{title:"Git",icon:"ti-git",cmds:[
+{cmd:"git init && git remote add origin <url>",desc:"Initialise repo and link remote",tags:[]},
+{cmd:"git clone --depth 1 <url>",desc:"Shallow clone (latest commit only, faster)",tags:[]},
+{cmd:"git status",desc:"Show working tree status",tags:[]},
+{cmd:"git add -p",desc:"Interactively stage hunks",tags:[]},
+{cmd:"git commit --amend --no-edit",desc:"Amend last commit without changing message",tags:[]},
+{cmd:"git log --oneline --graph --all",desc:"Pretty branch/merge graph",tags:[]},
+{cmd:"git diff HEAD~1 HEAD",desc:"Diff between last two commits",tags:[]},
+{cmd:"git stash push -m 'wip'",desc:"Stash with a description",tags:[]},
+{cmd:"git stash pop",desc:"Re-apply latest stash",tags:[]},
+{cmd:"git checkout -b feature/xyz",desc:"Create and switch to new branch",tags:[]},
+{cmd:"git rebase -i HEAD~3",desc:"Interactive rebase — squash/reorder last 3 commits",tags:[]},
+{cmd:"git cherry-pick <sha>",desc:"Apply a single commit to current branch",tags:[]},
+{cmd:"git bisect start && git bisect bad && git bisect good <sha>",desc:"Binary-search for the commit that introduced a bug",tags:[]},
+{cmd:"git reset --hard origin/main",desc:"Discard local changes, sync with remote",tags:[]},
+{cmd:"git tag -a v1.0.0 -m 'release' && git push --tags",desc:"Create annotated tag and push",tags:[]},
+{cmd:"git remote prune origin",desc:"Remove tracking branches deleted on remote",tags:[]}
+]},
+{title:"Python / pip / venv",icon:"ti-python",cmds:[
+{cmd:"python3 -m venv .venv",desc:"Create a virtual environment",tags:[]},
+{cmd:"source .venv/bin/activate",desc:"Activate venv (Linux/macOS)",tags:[]},
+{cmd:"deactivate",desc:"Exit the active virtual environment",tags:[]},
+{cmd:"pip install -r requirements.txt",desc:"Install all dependencies from file",tags:[]},
+{cmd:"pip freeze > requirements.txt",desc:"Save current env packages to file",tags:[]},
+{cmd:"pip list --outdated",desc:"Show packages with available updates",tags:[]},
+{cmd:"pip install --upgrade pip",desc:"Upgrade pip itself",tags:[]},
+{cmd:"python3 -m pip show requests",desc:"Show package info and version",tags:[]},
+{cmd:"python3 -c \"import sys; print(sys.path)\"",desc:"Print Python module search paths",tags:[]},
+{cmd:"python3 -m http.server 8000",desc:"Serve current directory over HTTP",tags:[]},
+{cmd:"pipx install black",desc:"Install CLI tools in isolated envs",tags:[]},
+{cmd:"pyenv install 3.12.0 && pyenv global 3.12.0",desc:"Install and set Python version with pyenv",tags:[]}
+]},
+{title:"Bash scripting",icon:"ti-terminal",cmds:[
+{cmd:"#!/usr/bin/env bash\nset -euo pipefail",desc:"Strict mode: exit on error, unset var, pipe fail",tags:[]},
+{cmd:"trap 'echo \"Error on line $LINENO\"' ERR",desc:"Catch errors and print line number",tags:[]},
+{cmd:"VAR=${1:-default}",desc:"Use first arg or fallback to default",tags:[]},
+{cmd:"if [[ -f \"$FILE\" ]]; then echo exists; fi",desc:"Check if a file exists",tags:[]},
+{cmd:"for f in *.log; do gzip \"$f\"; done",desc:"Loop over files matching glob",tags:[]},
+{cmd:"while IFS= read -r line; do echo \"$line\"; done < file.txt",desc:"Read a file line by line safely",tags:[]},
+{cmd:"result=$(curl -s https://api.example.com)",desc:"Capture command output in variable",tags:[]},
+{cmd:"[[ \"$ENV\" == 'prod' ]] && echo yes || echo no",desc:"Inline conditional (ternary-style)",tags:[]},
+{cmd:"arr=(a b c); echo \"${arr[@]}\"",desc:"Declare and iterate array",tags:[]},
+{cmd:"mktemp",desc:"Create a secure temporary file",tags:[]},
+{cmd:"logger -t myapp 'Job finished'",desc:"Write to syslog from script",tags:[]}
+]},
+{title:"Terraform",icon:"ti-terraform",cmds:[
+{cmd:"terraform init",desc:"Initialise working directory, download providers",tags:[]},
+{cmd:"terraform validate",desc:"Check config for syntax errors",tags:[]},
+{cmd:"terraform fmt -recursive",desc:"Auto-format all .tf files",tags:[]},
+{cmd:"terraform plan -out=tfplan",desc:"Preview changes and save plan",tags:["aws","gcs"]},
+{cmd:"terraform apply tfplan",desc:"Apply a saved plan (no confirmation prompt)",tags:["aws","gcs"]},
+{cmd:"terraform destroy -auto-approve",desc:"Destroy all managed infrastructure",tags:["aws","gcs"]},
+{cmd:"terraform output -json",desc:"Print all outputs as JSON",tags:[]},
+{cmd:"terraform state list",desc:"List all resources in state",tags:[]},
+{cmd:"terraform state show aws_instance.web",desc:"Inspect a specific resource in state",tags:["aws"]},
+{cmd:"terraform workspace new staging",desc:"Create a new named workspace",tags:[]},
+{cmd:"terraform workspace select staging",desc:"Switch to a workspace",tags:[]},
+{cmd:"terraform import aws_s3_bucket.b my-bucket",desc:"Import existing resource into state",tags:["aws"]},
+{cmd:"terraform taint aws_instance.web",desc:"Mark resource for recreation on next apply",tags:[]}
+]},
+{title:"Vim / Nano essentials",icon:"ti-vim",cmds:[
+{cmd:":w  /  :q  /  :wq  /  :q!",desc:"Save / quit / save+quit / force quit",tags:[]},
+{cmd:"i  /  Esc  /  v  /  V",desc:"Insert mode / Normal / Visual char / Visual line",tags:[]},
+{cmd:"dd  /  yy  /  p  /  u",desc:"Delete line / yank line / paste / undo",tags:[]},
+{cmd:":%s/old/new/g",desc:"Global find & replace across whole file",tags:[]},
+{cmd:"/pattern  then  n / N",desc:"Search forward; next/prev match",tags:[]},
+{cmd:"gg  /  G  /  :42",desc:"Go to top / bottom / line 42",tags:[]},
+{cmd:"Ctrl+r",desc:"Redo last undone change",tags:[]},
+{cmd:":set number / :set paste",desc:"Show line numbers / paste mode (no auto-indent)",tags:[]},
+{cmd:"Ctrl+X Ctrl+O",desc:"(nano) Save and exit",tags:[]},
+{cmd:"nano +42 file.txt",desc:"Open file at line 42 in nano",tags:[]},
+{cmd:"vim -d file1 file2",desc:"Diff two files side by side in vim",tags:[]}
+]}
+];
+
+// ── State
+let activeFilter='all', copyCounts={}, starred=new Set(JSON.parse(localStorage.getItem('starred')||'[]'));
+
+// ── Helpers
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escAttr(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function tagBadge(t){if(t==='aws')return '<span class="tag-badge tag-aws">AWS</span>';if(t==='gcs')return '<span class="tag-badge tag-gcs">GCS</span>';return ''}
+function highlight(text,q){if(!q)return escHtml(text);const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');return escHtml(text).replace(re,'<mark class="hl">$1</mark>')}
+function cardKey(si,ci){return si+'-'+ci}
+
+// ── Sidebar build
+function buildSidebar(){
+  const nav=document.getElementById('sidebar-nav');
+  const total=data.reduce((a,s)=>a+s.cmds.length,0);
+  animateNum('stat-sections',data.length);
+  animateNum('stat-cmds',total);
+  nav.innerHTML='<div class="nav-item nav-starred" onclick="setFilter(\'starred\',null)" style="border-left-color:var(--amber)">⭐ <span style="flex:1">Starred</span><span class="nav-count" style="background:var(--amber-bg);color:var(--amber)">'+starred.size+'</span></div>'+
+    data.map((s,i)=>`<div class="nav-item" data-idx="${i}" onclick="scrollToSection(${i})"><span class="nav-icon">${ICONS[s.icon]||'▸'}</span><span style="flex:1;line-height:1.3">${s.title}</span><span class="nav-count">${s.cmds.length}</span></div>`).join('');
+}
+
+function animateNum(id,target){
+  const el=document.getElementById(id);let cur=0;
+  const step=Math.ceil(target/30);
+  const t=setInterval(()=>{cur=Math.min(cur+step,target);el.textContent=cur;if(cur>=target)clearInterval(t)},30);
+}
+
+function scrollToSection(idx){
+  const el=document.getElementById('section-'+idx);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const ni=document.querySelector(`.nav-item[data-idx="${idx}"]`);
+  if(ni)ni.classList.add('active');
+}
+
+// ── Render
+function renderSections(search='',filter='all'){
+  const container=document.getElementById('sections');
+  const noRes=document.getElementById('no-results');
+  const resEl=document.getElementById('result-count');
+  container.innerHTML='';let total=0;
+  const q=search.toLowerCase().trim();
+
+  data.forEach((section,si)=>{
+    let filtered=section.cmds.map((c,ci)=>({...c,_ci:ci}));
+    if(filter==='aws') filtered=filtered.filter(c=>c.tags.includes('aws'));
+    else if(filter==='gcs') filtered=filtered.filter(c=>c.tags.includes('gcs'));
+    else if(filter==='starred') filtered=filtered.filter((_,ci)=>starred.has(cardKey(si,ci)));
+    if(q) filtered=filtered.filter(c=>c.cmd.toLowerCase().includes(q)||c.desc.toLowerCase().includes(q)||c.tags.some(t=>t.includes(q)));
+    if(!filtered.length)return;
+    total+=filtered.length;
+
+    const sec=document.createElement('div');
+    sec.className='section';sec.id='section-'+si;
+    sec.innerHTML=`
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="section-icon">${ICONS[section.icon]||'▸'}</span>
+        <span class="section-title">${escHtml(section.title)}</span>
+        <span class="section-count">${filtered.length}</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="cmd-grid" id="grid-${si}">
+        ${filtered.map(c=>{
+          const key=cardKey(si,c._ci);
+          const isStar=starred.has(key);
+          const cnt=copyCounts[key]||0;
+          return `<div class="cmd-card${isStar?' starred':''}" id="card-${key}">
+            <div class="cmd-top">
+              <span class="cmd-code">${highlight(c.cmd,q)}</span>
+              <div class="cmd-tags">${c.tags.map(tagBadge).join('')}</div>
+            </div>
+            <div class="cmd-bottom">
+              <span class="cmd-desc">${highlight(c.desc,q)}</span>
+              <div class="cmd-actions">
+                ${cnt>0?`<span class="copy-count">${cnt}×</span>`:''}
+                <button class="star-btn${isStar?' starred':''}" onclick="toggleStar('${key}',this)" title="${isStar?'Unstar':'Star'}">${isStar?'⭐':'☆'}</button>
+                <button class="copy-btn" onclick="copyCmd(this,'${escAttr(c.cmd)}','${key}')" aria-label="Copy">Copy</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    container.appendChild(sec);
+  });
+
+  noRes.style.display=total===0?'block':'none';
+  resEl.innerHTML=`<span>${total}</span> commands`;
+}
+
+// ── Toggle section
+function toggleSection(header){
+  const grid=header.nextElementSibling;
+  const collapsed=grid.classList.toggle('hidden');
+  header.classList.toggle('collapsed',collapsed);
+}
+
+function expandAll(){document.querySelectorAll('.section-header').forEach(h=>{h.classList.remove('collapsed');h.nextElementSibling.classList.remove('hidden')})}
+function collapseAll(){document.querySelectorAll('.section-header').forEach(h=>{h.classList.add('collapsed');h.nextElementSibling.classList.add('hidden')})}
+
+// ── Copy
+function copyCmd(btn,cmd,key){
+  navigator.clipboard.writeText(cmd).then(()=>afterCopy(btn,key)).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=cmd;ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    afterCopy(btn,key);
+  });
+}
+function afterCopy(btn,key){
+  copyCounts[key]=(copyCounts[key]||0)+1;
+  btn.textContent='✓ Copied';btn.classList.add('copied');
+  setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},1800);
+  // update count badge without full re-render
+  const card=document.getElementById('card-'+key);
+  if(card){let cc=card.querySelector('.copy-count');if(!cc){cc=document.createElement('span');cc.className='copy-count';card.querySelector('.cmd-actions').prepend(cc)}cc.textContent=copyCounts[key]+'×';}
+}
+
+// ── Starred
+function toggleStar(key,btn){
+  if(starred.has(key)){starred.delete(key);btn.textContent='☆';btn.classList.remove('starred');const card=document.getElementById('card-'+key);if(card)card.classList.remove('starred');}
+  else{starred.add(key);btn.textContent='⭐';btn.classList.add('starred');const card=document.getElementById('card-'+key);if(card)card.classList.add('starred');}
+  localStorage.setItem('starred',JSON.stringify([...starred]));
+  document.querySelector('.nav-item.nav-starred .nav-count').textContent=starred.size;
+  if(activeFilter==='starred')renderSections(document.getElementById('search').value.trim(),'starred');
+}
+
+// ── Search & filter
+function filterCmds(val){renderSections(val.trim(),activeFilter)}
+function setFilter(filter,btn){
+  activeFilter=filter;
+  document.querySelectorAll('.pill').forEach(p=>{p.className='pill'});
+  if(btn){if(filter==='aws')btn.className='pill active-aws';else if(filter==='gcs')btn.className='pill active-gcs';else if(filter==='starred')btn.className='pill active-starred';else btn.className='pill active-all';}
+  renderSections(document.getElementById('search').value.trim(),filter);
+}
+
+// ── Theme toggle
+function toggleTheme(){
+  document.documentElement.classList.toggle('light-mode');
+  const isLight=document.documentElement.classList.contains('light-mode');
+  localStorage.setItem('theme',isLight?'light':'dark');
+  document.getElementById('theme-btn').textContent=isLight?'🌙':'🌓';
+}
+(function initTheme(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.getElementById('theme-btn').textContent='🌙';}})();
+
+// ── Export TXT
+function exportTxt(){
+  const search=document.getElementById('search').value.trim();
+  const q=search.toLowerCase();
+  let lines=['Linux · Cloud Cheat Sheet v2','Generated: '+new Date().toLocaleString(),'Filter: '+activeFilter+(q?' | Search: '+search:''),'='.repeat(60)];
+  data.forEach(section=>{
+    let cmds=section.cmds.map((c,ci)=>({...c,_ci:ci}));
+    if(activeFilter==='aws') cmds=cmds.filter(c=>c.tags.includes('aws'));
+    else if(activeFilter==='gcs') cmds=cmds.filter(c=>c.tags.includes('gcs'));
+    else if(activeFilter==='starred') cmds=cmds.filter((_,ci)=>starred.has(cardKey(data.indexOf(section),ci)));
+    if(q) cmds=cmds.filter(c=>c.cmd.toLowerCase().includes(q)||c.desc.toLowerCase().includes(q));
+    if(!cmds.length)return;
+    lines.push('','## '+section.title,'');
+    cmds.forEach(c=>{lines.push('  '+c.cmd);lines.push('  → '+c.desc);lines.push('');});
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cheatsheet.txt';a.click();
+}
+
+// ── Modal
+function toggleModal(){document.getElementById('shortcuts-modal').classList.toggle('open')}
+function closeModal(e){if(e.target===document.getElementById('shortcuts-modal'))toggleModal()}
+
+// ── Progress bar + Jump to top
+const content=document.getElementById('content');
+const progressBar=document.getElementById('progress-bar');
+const jumpTop=document.getElementById('jump-top');
+content.addEventListener('scroll',()=>{
+  const pct=content.scrollTop/(content.scrollHeight-content.clientHeight)*100;
+  progressBar.style.width=pct+'%';
+  jumpTop.classList.toggle('visible',content.scrollTop>300);
+  // active sidebar section
+  const sections=document.querySelectorAll('.section');
+  let active=0;
+  sections.forEach(s=>{if(s.getBoundingClientRect().top<200)active=parseInt(s.id.split('-')[1])});
+  document.querySelectorAll('.nav-item[data-idx]').forEach(n=>n.classList.remove('active'));
+  const ni=document.querySelector(`.nav-item[data-idx="${active}"]`);if(ni)ni.classList.add('active');
+});
+jumpTop.addEventListener('click',()=>content.scrollTo({top:0,behavior:'smooth'}));
+
+// ── Keyboard shortcuts
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement.tagName;
+  const inInput=tag==='INPUT'||tag==='TEXTAREA';
+  if(e.key==='/'&&!inInput){e.preventDefault();document.getElementById('search').focus();}
+  if(e.key==='Escape'){
+    if(document.getElementById('shortcuts-modal').classList.contains('open')){toggleModal();return;}
+    document.getElementById('search').blur();document.getElementById('search').value='';renderSections('',activeFilter);
+  }
+  if(e.key==='?'&&!inInput){e.preventDefault();toggleModal();}
+  if(e.ctrlKey&&e.key==='d'){e.preventDefault();toggleTheme();}
+  if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportTxt();}
+  if(e.ctrlKey&&e.key==='ArrowUp'){e.preventDefault();expandAll();}
+  if(e.ctrlKey&&e.key==='ArrowDown'){e.preventDefault();collapseAll();}
+  if(e.altKey&&e.key>='1'&&e.key<='9'){e.preventDefault();scrollToSection(parseInt(e.key)-1);}
+});
+
+// ── Init
+buildSidebar();
+renderSections();
+</script>
+</body>
+</html>
